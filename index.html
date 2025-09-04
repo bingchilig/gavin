@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>이주영 게임</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: linear-gradient(135deg, #000000 0%, #000000 100%);
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      padding: 10px;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: min(100vw, 400px);
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 10px 20px;
+      margin-bottom: 10px;
+      color: white;
+      font-weight: 600;
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .sound-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .sound-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .sound-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: scale(1.05);
+    }
+
+    .sound-btn.muted {
+      background: rgba(255, 0, 0, 0.3);
+      border-color: rgba(255, 0, 0, 0.5);
+    }
+
+    .sound-btn.muted:hover {
+      background: rgba(255, 0, 0, 0.4);
+      border-color: rgba(255, 0, 0, 0.6);
+    }
+
+    .sound-icon {
+      font-size: 16px;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    }
+
+    .scores {
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .stage {
+      position: relative;
+      width: min(100vw - 20px, 400px);
+      aspect-ratio: 9/16;
+      border-radius: 20px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #f0f8ff 0%, #e6f3ff 100%);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .danger-line {
+      position: absolute;
+      top: 15%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255, 0, 0, 0.5);
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+    }
+
+    .fruit-preview {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 20;
+    }
+
+    .preview-fruit {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid;
+      background: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-fruit img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #ff0000 0%, #0011ff 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+
+    .modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panel {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      min-width: 280px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .modal:not(.hidden) .panel {
+      transform: scale(1);
+    }
+
+    .panel h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .panel p {
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .hud {
+        width: calc(100vw - 20px);
+        font-size: 12px;
+        padding: 8px 15px;
+      }
+      
+      .brand {
+        font-size: 16px;
+      }
+      
+      .sound-controls {
+        gap: 6px;
+      }
+      
+      .sound-btn {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .sound-icon {
+        font-size: 14px;
+      }
+      
+      .scores {
+        gap: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 상단 HUD -->
+    <header class="hud">
+      <div class="brand">이주영 게임</div>
+      <div class="sound-controls">
+        <button id="bgMusicToggle" class="sound-btn" title="배경음악">
+          <span class="sound-icon">🎵</span>
+        </button>
+        <button id="sfxToggle" class="sound-btn" title="효과음">
+          <span class="sound-icon">🔊</span>
+        </button>
+      </div>
+      <div class="scores">
+        <div>점수 <span id="score">0</span></div>
+        <div>최고 <span id="high">0</span></div>
+      </div>
+    </header>
+
+    <!-- 게임 스테이지 -->
+    <div class="stage" id="stage">
+      <canvas id="view"></canvas>
+      <div class="danger-line"></div>
+      
+      <!-- 과일 미리보기 -->
+      <div class="fruit-preview">
+        <div>현재</div>
+        <div class="preview-fruit" id="currentFruit">
+          <img src="images/img1.png" alt="현재 과일" onerror="this.style.display='none'">
+        </div>
+        <div>다음</div>
+        <div class="preview-fruit" id="nextFruit">
+          <img src="images/img1.png" alt="다음 과일" onerror="this.style.display='none'">
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="restart" class="btn">다시 시작</button>
+    </div>
+  </div>
+
+  <!-- 게임오버 모달 -->
+  <div id="gameover" class="modal hidden">
+    <div class="panel">
+      <h2>게임 오버!</h2>
+      <p>최종 점수: <b id="finalScore">0</b></p>
+      <button id="retry" class="btn primary">다시 도전</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+  <script>
+    // 게임 설정
+    const CONFIG = {
+      FRUIT_COUNT: 12,
+      SPAWN_LEVELS: [0, 1, 2, 3, 4, 5], // 6단계까지 생성 가능
+      COLORS: [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F8C471', '#82E0AA'
+      ],
+      SIZES: [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75],
+      SCORES: [1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78].map(x => x * 10)
+    };
+
+    class SuikaGame {
+      constructor() {
+        this.initElements();
+        this.initPhysics();
+        this.initGame();
+        this.setupEventListeners();
+        this.startGameLoop();
+        this.loadHighScore();
+        this.loadImages();
+        this.setupBackgroundMusic();
+        this.setupSoundControls();
+      }
+
+      setupBackgroundMusic() {
+        try {
+          this.bgMusic = new Audio('sounds/background.mp3');
+          this.bgMusic.loop = true;
+          this.bgMusic.volume = 0.2;
+          
+          // 게임 로드 시 즉시 음악 시작 시도
+          this.startBackgroundMusic();
+          
+        } catch (e) {
+          this.bgMusic = null;
+        }
+      }
+
+      startBackgroundMusic() {
+        if (this.bgMusic && !this.bgMusicMuted) {
+          this.bgMusic.play().catch(() => {
+            // 자동재생이 차단된 경우, 첫 번째 사용자 상호작용에서 시작
+            const startMusic = () => {
+              if (!this.bgMusicMuted) {
+                this.bgMusic.play().catch(() => {});
+              }
+            };
+            document.addEventListener('click', startMusic, { once: true });
+            document.addEventListener('touchstart', startMusic, { once: true });
+          });
+        }
+      }
+
+      resumeBackgroundMusic() {
+        if (this.bgMusic && !this.bgMusicMuted) {
+          this.bgMusic.play().catch(() => {
+            // 자동재생이 차단된 경우, 첫 번째 사용자 상호작용에서 시작
+            const resumeMusic = () => {
+              if (!this.bgMusicMuted) {
+                this.bgMusic.play().catch(() => {});
+              }
+            };
+            document.addEventListener('click', resumeMusic, { once: true });
+            document.addEventListener('touchstart', resumeMusic, { once: true });
+          });
+        }
+      }
+
+      setupSoundControls() {
+        // 배경음악 토글
+        this.bgMusicToggle.addEventListener('click', () => {
+          this.bgMusicMuted = !this.bgMusicMuted;
+          localStorage.setItem('suika-bg-muted', this.bgMusicMuted.toString());
+          
+          if (this.bgMusicMuted) {
+            this.bgMusic.pause();
+          } else {
+            this.resumeBackgroundMusic();
+          }
+          
+          this.updateSoundButtons();
+        });
+
+        // 효과음 토글
+        this.sfxToggle.addEventListener('click', () => {
+          this.sfxMuted = !this.sfxMuted;
+          localStorage.setItem('suika-sfx-muted', this.sfxMuted.toString());
+          this.updateSoundButtons();
+        });
+      }
+
+      updateSoundButtons() {
+        // 배경음악 버튼 상태 업데이트
+        if (this.bgMusicMuted) {
+          this.bgMusicToggle.classList.add('muted');
+          this.bgMusicToggle.querySelector('.sound-icon').textContent = '🔇';
+        } else {
+          this.bgMusicToggle.classList.remove('muted');
+          this.bgMusicToggle.querySelector('.sound-icon').textContent = '🎵';
+        }
+
+        // 효과음 버튼 상태 업데이트
+        if (this.sfxMuted) {
+          this.sfxToggle.classList.add('muted');
+          this.sfxToggle.querySelector('.sound-icon').textContent = '🔇';
+        } else {
+          this.sfxToggle.classList.remove('muted');
+          this.sfxToggle.querySelector('.sound-icon').textContent = '🔊';
+        }
+      }
+
+      async loadImages() {
+        this.images = {};
+        const loadPromises = [];
+        
+        for (let i = 1; i <= CONFIG.FRUIT_COUNT; i++) {
+          const promise = new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              this.images[`img${i}`] = img;
+              resolve();
+            };
+            img.onerror = () => {
+              this.images[`img${i}`] = null;
+              resolve();
+            };
+            img.src = `images/img${i}.png`;
+          });
+          loadPromises.push(promise);
+        }
+        
+        await Promise.all(loadPromises);
+      }
+
+      initElements() {
+        this.canvas = document.getElementById('view');
+        this.ctx = this.canvas.getContext('2d');
+        this.stage = document.getElementById('stage');
+        this.scoreEl = document.getElementById('score');
+        this.highEl = document.getElementById('high');
+        this.currentFruitEl = document.getElementById('currentFruit');
+        this.nextFruitEl = document.getElementById('nextFruit');
+        this.gameoverModal = document.getElementById('gameover');
+        this.finalScoreEl = document.getElementById('finalScore');
+        this.restartBtn = document.getElementById('restart');
+        this.retryBtn = document.getElementById('retry');
+        this.bgMusicToggle = document.getElementById('bgMusicToggle');
+        this.sfxToggle = document.getElementById('sfxToggle');
+        
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+      }
+
+      resizeCanvas() {
+        const rect = this.stage.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        this.canvas.style.width = rect.width + 'px';
+        this.canvas.style.height = rect.height + 'px';
+        
+        this.ctx.scale(dpr, dpr);
+        this.stageWidth = rect.width;
+        this.stageHeight = rect.height;
+      }
+
+      initPhysics() {
+        const { Engine, World, Bodies } = Matter;
+        
+        this.engine = Engine.create();
+        this.world = this.engine.world;
+        this.engine.world.gravity.y = 0.8;
+        
+        // 벽 생성
+        this.createWalls();
+        
+        // 물리 엔진 시작
+        this.runner = Matter.Runner.create();
+        Matter.Runner.run(this.runner, this.engine);
+        
+        // 충돌 이벤트
+        Matter.Events.on(this.engine, 'collisionStart', (event) => {
+          this.handleCollisions(event.pairs);
+        });
+      }
+
+      createWalls() {
+        const { Bodies, World } = Matter;
+        const thickness = 50;
+        
+        // 바닥, 좌벽, 우벽
+        const ground = Bodies.rectangle(
+          this.stageWidth / 2, 
+          this.stageHeight + thickness / 2, 
+          this.stageWidth, 
+          thickness,
+          { isStatic: true, label: 'wall' }
+        );
+        
+        const leftWall = Bodies.rectangle(
+          -thickness / 2, 
+          this.stageHeight / 2, 
+          thickness, 
+          this.stageHeight,
+          { isStatic: true, label: 'wall' }
+        );
+        
+        const rightWall = Bodies.rectangle(
+          this.stageWidth + thickness / 2, 
+          this.stageHeight / 2, 
+          thickness, 
+          this.stageHeight,
+          { isStatic: true, label: 'wall' }
+        );
+
+        World.add(this.world, [ground, leftWall, rightWall]);
+      }
+
+      initGame() {
+        this.fruits = [];
+        this.score = 0;
+        this.highScore = parseInt(localStorage.getItem('suika-high') || '0');
+        this.gameOver = false;
+        this.dropFruit = null;
+        this.nextDropFruit = null;
+        this.canDrop = true;
+        this.mouseX = this.stageWidth / 2;
+        this.isMouseDown = false;
+        this.bgMusicMuted = localStorage.getItem('suika-bg-muted') === 'true';
+        this.sfxMuted = localStorage.getItem('suika-sfx-muted') === 'true';
+        
+        this.currentLevel = this.getRandomSpawnLevel();
+        this.nextLevel = this.getRandomSpawnLevel();
+        
+        this.updateUI();
+        this.updatePreview();
+        this.updateSoundButtons();
+        this.createNextDropFruit();
+        
+        // 게임 시작 사운드 재생
+        this.playStartSound();
+      }
+
+      getRandomSpawnLevel() {
+        // 가중치: 1단계(40%), 2단계(25%), 3단계(18%), 4단계(12%), 5단계(4%), 6단계(1%)
+        const weights = [40, 25, 18, 12, 4, 1];
+        const total = weights.reduce((a, b) => a + b, 0);
+        let random = Math.random() * total;
+        
+        for (let i = 0; i < weights.length; i++) {
+          random -= weights[i];
+          if (random <= 0) return i;
+        }
+        return 0;
+      }
+
+      createNextDropFruit() {
+        if (this.nextDropFruit) {
+          Matter.World.remove(this.world, this.nextDropFruit);
+        }
+        
+        const { Bodies } = Matter;
+        const radius = CONFIG.SIZES[this.currentLevel];
+        
+        this.nextDropFruit = Bodies.circle(this.mouseX, 50, radius, {
+          isStatic: true,
+          isSensor: true,
+          label: 'preview'
+        });
+        
+        this.nextDropFruit.level = this.currentLevel;
+        this.nextDropFruit.radius = radius;
+        Matter.World.add(this.world, this.nextDropFruit);
+      }
+
+      createFruit(x, y, level, isStatic = false) {
+        const { Bodies, World } = Matter;
+        const radius = CONFIG.SIZES[level];
+        
+        const fruit = Bodies.circle(x, y, radius, {
+          restitution: 0.4,
+          friction: 0.3,
+          frictionAir: 0.01,
+          label: 'fruit',
+          isStatic: isStatic
+        });
+        
+        fruit.level = level;
+        fruit.radius = radius;
+        
+        if (!isStatic) {
+          this.fruits.push(fruit);
+        }
+        
+        World.add(this.world, fruit);
+        return fruit;
+      }
+
+      handleCollisions(pairs) {
+        for (let pair of pairs) {
+          const { bodyA, bodyB } = pair;
+          
+          if (bodyA.label === 'fruit' && bodyB.label === 'fruit') {
+            if (bodyA.level === bodyB.level && bodyA.level < CONFIG.FRUIT_COUNT - 1) {
+              this.mergeFruits(bodyA, bodyB);
+            }
+          }
+        }
+      }
+
+      mergeFruits(fruitA, fruitB) {
+        if (fruitA.merged || fruitB.merged) return;
+        
+        fruitA.merged = true;
+        fruitB.merged = true;
+        
+        // 새로운 과일 위치 (두 과일의 중점)
+        const newX = (fruitA.position.x + fruitB.position.x) / 2;
+        const newY = (fruitA.position.y + fruitB.position.y) / 2;
+        const newLevel = fruitA.level + 1;
+        
+        // 기존 과일 제거
+        Matter.World.remove(this.world, [fruitA, fruitB]);
+        this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
+        
+        // 새 과일 생성
+        setTimeout(() => {
+          this.createFruit(newX, newY, newLevel);
+          
+          // 점수 추가
+          this.score += CONFIG.SCORES[fruitA.level];
+          this.updateUI();
+          
+          // 효과음 재생 (나중에 추가)
+          this.playMergeSound();
+        }, 50);
+      }
+
+      dropCurrentFruit() {
+        if (!this.canDrop || this.gameOver) return;
+        
+        this.canDrop = false;
+        
+        // 미리보기 과일 제거
+        if (this.nextDropFruit) {
+          Matter.World.remove(this.world, this.nextDropFruit);
+          this.nextDropFruit = null;
+        }
+        
+        // 현재 과일 떨어뜨리기
+        this.dropFruit = this.createFruit(this.mouseX, 50, this.currentLevel);
+        
+        // 효과음 재생 (나중에 추가)
+        this.playDropSound();
+        
+        // 다음 과일로 교체
+        this.currentLevel = this.nextLevel;
+        this.nextLevel = this.getRandomSpawnLevel();
+        this.updatePreview();
+        
+        // 잠시 후 다시 떨어뜨릴 수 있게
+        setTimeout(() => {
+          this.canDrop = true;
+          this.createNextDropFruit();
+        }, 1000);
+      }
+
+      checkGameOver() {
+        const dangerLine = this.stageHeight * 0.15;
+        
+        for (let fruit of this.fruits) {
+          // 위험선을 넘는 과일 체크
+          if (fruit.position.y - fruit.radius < dangerLine) {
+            // 과일이 움직이지 않을 때만 게임오버
+            if (Math.abs(fruit.velocity.y) < 0.1 && Math.abs(fruit.velocity.x) < 0.1) {
+              this.endGame();
+              return;
+            }
+          }
+        }
+      }
+
+      endGame() {
+        if (this.gameOver) return;
+        
+        this.gameOver = true;
+        
+        // 배경음악 일시정지
+        if (this.bgMusic && !this.bgMusic.paused && !this.bgMusicMuted) {
+          this.bgMusic.pause();
+        }
+        
+        // 게임오버 사운드 재생
+        this.playGameOverSound();
+        
+        // 미리보기 과일 제거
+        if (this.nextDropFruit) {
+          Matter.World.remove(this.world, this.nextDropFruit);
+          this.nextDropFruit = null;
+        }
+        
+        // 최고점수 업데이트
+        if (this.score > this.highScore) {
+          this.highScore = this.score;
+          localStorage.setItem('suika-high', this.highScore.toString());
+          this.updateUI();
+        }
+        
+        // 게임오버 모달 표시
+        this.finalScoreEl.textContent = this.score;
+        this.gameoverModal.classList.remove('hidden');
+      }
+
+      restartGame() {
+        // 물리 엔진 정리
+        Matter.World.clear(this.world);
+        this.createWalls();
+        
+        // 게임 상태 초기화 (시작 사운드는 initGame에서 재생)
+        this.initGame();
+        this.gameoverModal.classList.add('hidden');
+        
+        // 배경음악 재시작 (음소거 상태가 아닐 때만)
+        if (!this.bgMusicMuted) {
+          this.resumeBackgroundMusic();
+        }
+      }
+
+      updateUI() {
+        this.scoreEl.textContent = this.score;
+        this.highEl.textContent = this.highScore;
+      }
+
+      updatePreview() {
+        // 현재 과일 미리보기
+        const currentImg = this.currentFruitEl.querySelector('img');
+        if (currentImg) {
+          currentImg.src = `images/img${this.currentLevel + 1}.png`;
+        }
+        this.currentFruitEl.style.borderColor = CONFIG.COLORS[this.currentLevel];
+        
+        // 다음 과일 미리보기
+        const nextImg = this.nextFruitEl.querySelector('img');
+        if (nextImg) {
+          nextImg.src = `images/img${this.nextLevel + 1}.png`;
+        }
+        this.nextFruitEl.style.borderColor = CONFIG.COLORS[this.nextLevel];
+      }
+
+      loadHighScore() {
+        this.highScore = parseInt(localStorage.getItem('suika-high') || '0');
+        this.updateUI();
+      }
+
+      playDropSound() {
+        if (this.sfxMuted) return;
+        try {
+          const audio = new Audio('sounds/drop.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      playMergeSound() {
+        if (this.sfxMuted) return;
+        try {
+          const audio = new Audio('sounds/merge.mp3');
+          audio.volume = 0.5;
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      playStartSound() {
+        if (this.sfxMuted) return;
+        try {
+          const audio = new Audio('sounds/start.mp3');
+          audio.volume = 0.4;
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      playGameOverSound() {
+        if (this.sfxMuted) return;
+        try {
+          const audio = new Audio('sounds/gameover.mp3');
+          audio.volume = 0.6;
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      setupEventListeners() {
+        // 마우스 이벤트
+        this.canvas.addEventListener('mousedown', (e) => {
+          this.isMouseDown = true;
+          const rect = this.canvas.getBoundingClientRect();
+          this.mouseX = Math.max(30, Math.min(this.stageWidth - 30, e.clientX - rect.left));
+          if (this.nextDropFruit) {
+            Matter.Body.setPosition(this.nextDropFruit, { x: this.mouseX, y: 50 });
+          }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          this.mouseX = Math.max(30, Math.min(this.stageWidth - 30, e.clientX - rect.left));
+          if (this.nextDropFruit && this.canDrop) {
+            Matter.Body.setPosition(this.nextDropFruit, { x: this.mouseX, y: 50 });
+          }
+        });
+
+        this.canvas.addEventListener('mouseup', () => {
+          if (this.isMouseDown) {
+            this.dropCurrentFruit();
+            this.isMouseDown = false;
+          }
+        });
+
+        // 터치 이벤트
+        this.canvas.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          this.isMouseDown = true;
+          const rect = this.canvas.getBoundingClientRect();
+          const touch = e.touches[0];
+          this.mouseX = Math.max(30, Math.min(this.stageWidth - 30, touch.clientX - rect.left));
+          if (this.nextDropFruit) {
+            Matter.Body.setPosition(this.nextDropFruit, { x: this.mouseX, y: 50 });
+          }
+        });
+
+        this.canvas.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          if (e.touches.length > 0) {
+            const rect = this.canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            this.mouseX = Math.max(30, Math.min(this.stageWidth - 30, touch.clientX - rect.left));
+            if (this.nextDropFruit && this.canDrop) {
+              Matter.Body.setPosition(this.nextDropFruit, { x: this.mouseX, y: 50 });
+            }
+          }
+        });
+
+        this.canvas.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          if (this.isMouseDown) {
+            this.dropCurrentFruit();
+            this.isMouseDown = false;
+          }
+        });
+
+        // 재시작 버튼
+        this.restartBtn.addEventListener('click', () => {
+          this.restartGame();
+        });
+
+        this.retryBtn.addEventListener('click', () => {
+          this.restartGame();
+        });
+
+        // 키보드 이벤트 (R키로 재시작)
+        document.addEventListener('keydown', (e) => {
+          if (e.key.toLowerCase() === 'r') {
+            this.restartGame();
+          }
+        });
+      }
+
+      render() {
+        // 화면 클리어
+        this.ctx.clearRect(0, 0, this.stageWidth, this.stageHeight);
+        
+        // 과일 렌더링
+        this.fruits.forEach(fruit => {
+          this.drawFruit(fruit);
+        });
+
+        // 미리보기 과일 렌더링
+        if (this.nextDropFruit && this.canDrop) {
+          this.drawFruit(this.nextDropFruit, true);
+        }
+
+        // 게임오버 체크
+        if (!this.gameOver) {
+          this.checkGameOver();
+        }
+      }
+
+      drawFruit(fruit, isPreview = false) {
+        const x = fruit.position.x;
+        const y = fruit.position.y;
+        const radius = fruit.radius;
+        const level = fruit.level;
+        
+        this.ctx.save();
+        
+        // 미리보기일 경우 투명도 조절
+        if (isPreview) {
+          this.ctx.globalAlpha = 0.7;
+        }
+        
+        // 원형 클리핑 영역 생성
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.clip();
+        
+        // 이미지 그리기 (있는 경우)
+        const img = this.images && this.images[`img${level + 1}`];
+        if (img) {
+          const imgSize = radius * 2;
+          this.ctx.drawImage(img, x - radius, y - radius, imgSize, imgSize);
+        } else {
+          // 이미지가 없으면 단색으로 채우기
+          this.ctx.fillStyle = CONFIG.COLORS[level];
+          this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+        
+        // 테두리 그리기
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.strokeStyle = CONFIG.COLORS[level];
+        this.ctx.lineWidth = 4;
+        this.ctx.stroke();
+        
+        // 미리보기가 아닐 때만 숫자 표시
+        if (!isPreview) {
+          this.ctx.fillStyle = 'white';
+          this.ctx.font = `bold ${Math.max(12, radius * 0.4)}px Poppins`;
+          this.ctx.textAlign = 'center';
+          this.ctx.textBaseline = 'middle';
+          this.ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+          this.ctx.lineWidth = 2;
+          this.ctx.strokeText(level + 1, x, y);
+          this.ctx.fillText(level + 1, x, y);
+        }
+        
+        this.ctx.restore();
+      }
+
+      startGameLoop() {
+        const gameLoop = () => {
+          this.render();
+          requestAnimationFrame(gameLoop);
+        };
+        gameLoop();
+      }
+    }
+
+    // 게임 시작
+    document.addEventListener('DOMContentLoaded', () => {
+      new SuikaGame();
+    });
+  </script>
+</body>
+</html>
